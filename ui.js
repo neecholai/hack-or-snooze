@@ -8,6 +8,7 @@ $(async function() {
   const $ownStories = $("#my-articles");
   const $navLogin = $("#nav-login");
   const $navLogOut = $("#nav-logout");
+  const $createStory = $('#create-story');
 
   // global storyList variable
   let storyList = null;
@@ -57,6 +58,42 @@ $(async function() {
     loginAndSubmitForm();
   });
 
+  /**
+   * Event listener for create story link
+   * Toggles create story submit form to be visible
+   */
+  $createStory.on("click", function() {
+    $submitForm.slideToggle();
+  });
+
+  /**
+   * Event listener for creating a story
+   * If successful, we will add story to the API, and clear DOM and 
+   * generate new list of stories.
+   */
+  $submitForm.on("submit", async function(e) {
+    e.preventDefault();
+    const author = $('#author').val();
+    const title = $('#title').val();
+    const url = $('#url').val();
+
+    const newStory = {
+      author,
+      title,
+      url
+    };
+
+    // Reset form and hide it.
+    $submitForm.trigger("reset");
+    $submitForm.hide();
+
+    // Post new story to the story list and then prepend that story to the DOM.
+    const addedStory = await storyList.addStory(currentUser, newStory);
+    const result = generateStoryHTML(addedStory);
+    $allStoriesList.prepend(result);
+
+  });
+  
   /**
    * Log Out Functionality
    */
@@ -189,6 +226,7 @@ $(async function() {
   function showNavForLoggedInUser() {
     $navLogin.hide();
     $navLogOut.show();
+    $createStory.show();
   }
 
   /* simple function to pull the hostname from a URL */
