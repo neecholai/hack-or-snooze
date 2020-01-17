@@ -39,7 +39,7 @@ a:hover {
 
 nav {
   display: flex;
-  background-color: #ff6600;
+  background-color: #5a99cc;
   align-items: center;
   padding: 5px 20px;
   border-radius: 3px 3px 0 0;
@@ -187,9 +187,19 @@ form > hr {
   margin-left: 25px;
 }
 
-#favorited-articles,
-#filtered-articles,
-#my-articles {
+.delete-story-button {
+  background-color: #76c791;
+  margin: 1px 3px;
+  border-radius: 5px;
+  border: 1px solid #445544;
+  box-shadow: 1px 0px #c2c9cf;
+  padding: 1px 4px;
+  font-size: smaller;
+}
+
+#favorited-stories,
+#filtered-stories,
+#my-stories {
   list-style: none;
   padding-left: 20px;
 }
@@ -226,3 +236,5 @@ form > hr {
     margin: 8px auto;
   }
 }
+
+

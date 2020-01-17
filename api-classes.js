@@ -175,14 +175,53 @@ class User {
     const hasFavorite = this.hasFavorite(storyId);
     if (hasFavorite) {
       //{token} is now equivalent to {token: this.loginToken}
-      response = await axios.delete(link, { data: { token } });
+      response = await axios.delete(link, {
+        data: {
+          token
+        }
+      });
     } else {
-      response = await axios.post(link, { token });
+      response = await axios.post(link, {
+        token
+      });
     }
 
     //re-instantiate user's favorites based on user
     this.favorites = response.data.user.favorites.map(s => new Story(s));
   }
+
+  hasCreatedStory(id) {
+    return this.ownStories.some(function (story) {
+      return story.storyId === id;
+    });
+  }
+
+  async deleteStory(storyId) {
+    // declare response, set link and token for later AJAX requests
+    let link = `${BASE_URL}/stories/${storyId}`;
+    let token = this.loginToken;
+
+    //Delete Story from User
+    await axios.delete(link, {
+      data: {
+        token
+      }
+    });
+
+    // Get user
+    let response = await axios.get(`${BASE_URL}/users/${this.username}`, {
+      params: {
+        token
+      }
+    });
+
+    // Re-instantiate user's stories
+    this.ownStories = response.data.user.stories.map(s => new Story(s));
+
+  }
+
+
+
 }
 
 /**

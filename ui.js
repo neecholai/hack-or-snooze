@@ -1,22 +1,29 @@
-$(async function() {
+$(async function () {
   // cache some selectors we'll be using quite a bit
   const $allStoriesList = $("#all-articles-list");
   const $submitForm = $("#submit-form");
-  const $filteredArticles = $("#filtered-articles");
+  const $filteredStories = $("#filtered-stories");
   const $loginForm = $("#login-form");
   const $createAccountForm = $("#create-account-form");
-  const $ownStories = $("#my-articles");
+  const $ownStories = $("#my-stories");
   const $navLogin = $("#nav-login");
   const $navLogOut = $("#nav-logout");
   const $createStory = $('#create-story');
   const $favoritesTab = $("#favorites-tab");
-  const $favoritedArticles = $("#favorited-articles");
+  const $favoritedStories = $("#favorited-stories");
+  const $myStories = $('#my-stories');
+  const $separators = $('.separators');
+  const $myStoriesTab = $('#my-stories-tab')
+
 
   // global storyList variable
   let storyList = null;
 
   // global currentUser variable
   let currentUser = null;
+
+  // global currentTab variable;
+  let $currentList = null;
 
   await checkIfLoggedIn();
 
@@ -25,7 +32,7 @@ $(async function() {
    *  If successfully we will setup the user instance
    */
 
-  $loginForm.on("submit", async function(evt) {
+  $loginForm.on("submit", async function (evt) {
     evt.preventDefault(); // no page-refresh on submit
 
     // grab the username and password
@@ -45,7 +52,7 @@ $(async function() {
    *  If successfully we will setup a new user instance
    */
 
-  $createAccountForm.on("submit", async function(evt) {
+  $createAccountForm.on("submit", async function (evt) {
     evt.preventDefault(); // no page refresh
 
     // grab the required fields
@@ -64,7 +71,7 @@ $(async function() {
    * Event listener for create story link
    * Toggles create story submit form to be visible
    */
-  $createStory.on("click", function() {
+  $createStory.on("click", function () {
     $submitForm.slideToggle();
   });
 
@@ -73,7 +80,7 @@ $(async function() {
    * If successful, we will add story to the API, and clear DOM and
    * generate new list of stories.
    */
-  $submitForm.on("submit", async function(e) {
+  $submitForm.on("submit", async function (e) {
     e.preventDefault();
     const author = $('#author').val();
     const title = $('#title').val();
@@ -91,8 +98,9 @@ $(async function() {
 
     // Post new story to the story list and then prepend that story to the DOM.
     const addedStory = await storyList.addStory(currentUser, newStory);
+    currentUser.ownStories.push(addedStory);
     const result = generateStoryHTML(addedStory);
-    $allStoriesList.prepend(result);
+    if ($currentList !== $favoritedStories) $currentList.prepend(result);
 
   });
 
@@ -100,7 +108,7 @@ $(async function() {
    * Log Out Functionality
    */
 
-  $navLogOut.on("click", function() {
+  $navLogOut.on("click", function () {
     // empty out local storage
     localStorage.clear();
     // refresh the page, clearing memory
@@ -111,7 +119,7 @@ $(async function() {
    * Event Handler for Clicking Login
    */
 
-  $navLogin.on("click", function() {
+  $navLogin.on("click", function () {
     // Show the Login and Create Account Forms
     $loginForm.slideToggle();
     $createAccountForm.slideToggle();
@@ -120,35 +128,62 @@ $(async function() {
 
   /**
    * Event handler for Favoriting a story
-  */
+   */
+  $(".articles-list").on("click", ".favorite", function (e) {
+    if (currentUser) {
 
-  $(".articles-list").on("click", ".favorite", function(e){
-    // get the star that will be either filled or unfilled
-    let starElement = $(e.target);
+      // get the star that will be either filled or unfilled
+      let starElement = $(e.target);
 
-    // add or remove favorite, both for the server and the currentUser object
-    let favoriteId = starElement.closest("li")[0].id;
-    currentUser.toggleFavorite(favoriteId);
+      // add or remove favorite, both for the server and the currentUser object
+      let favoriteId = starElement.closest("li")[0].id;
+      currentUser.toggleFavorite(favoriteId);
 
-    //fill or unfill star
-    starElement.toggleClass("far fas");
+      //fill or unfill star
+      starElement.toggleClass("far fas");
+
+    } else {
+      alert('Please login to add favorites!');
+    }
+  });
+
+  /**
+   * Event handler for Deleting a story
+   */
+  $('.articles-list').on("click", ".delete-story-button", function (e) {
+    let deleteButton = $(e.target);
+    let createdStory = deleteButton.closest("li")[0];
+
+    currentUser.deleteStory(createdStory.id);
+    createdStory.remove();
   });
 
   /**
    * Event handler for Navigation to Homepage
    */
 
-  $("body").on("click", "#nav-all", async function() {
+  $("body").on("click", "#nav-all", async function () {
     hideElements();
     await generateStories();
     $allStoriesList.show();
   });
 
-  // generateStoryHTML(story)
-  $("body").on("click", "#favorites-tab", function() {
+  /**
+   * Event handler for Navigation to Favorites
+   */
+  $("body").on("click", "#favorites-tab", function () {
     hideElements();
     generateFavorites();
-    $favoritedArticles.show();
+    $favoritedStories.show();
+  });
+
+  /**
+   * Event handler for Navigation to My stories
+   */
+  $("body").on("click", "#my-stories-tab", function () {
+    hideElements();
+    generateMyStories();
+    $myStories.show();
   });
 
   /**
@@ -198,26 +233,20 @@ $(async function() {
    */
 
   async function generateStories() {
+
     // get an instance of StoryList
     const storyListInstance = await StoryList.getStories();
-    // update our global variable
+    // update our global variables
     storyList = storyListInstance;
+    $currentList = $allStoriesList
     // empty out that part of the page
+    $favoritedStories.empty();
     $allStoriesList.empty();
+    $myStories.empty();
 
     // loop through all of our stories and generate HTML for them
     for (let story of storyList.stories) {
       const result = generateStoryHTML(story);
-
-      let starType = "far";
-      // check if user is logged in
-      if(currentUser && currentUser.hasFavorite(story.storyId)){
-        // show a star either solid or empty (fas is solid, far is empty)
-        // depending on whether it's already favorited by the user.
-        starType = "fas";
-      }
-      result.children("i").addClass(starType);
-
       $allStoriesList.append(result);
     }
   }
@@ -226,18 +255,29 @@ $(async function() {
    *
    */
 
-   function generateFavorites(){
-    $favoritedArticles.empty();
+  function generateFavorites() {
+    $currentList = $favoritedStories;
+    $favoritedStories.empty();
     $allStoriesList.empty();
-     for(let favoriteStory of currentUser.favorites){
+    $myStories.empty();
+    for (let favoriteStory of currentUser.favorites) {
       const result = generateStoryHTML(favoriteStory);
 
-      //fas is the tag for a filled star (indicating favorite)
-      result.children("i").addClass("fas");
-
-      $favoritedArticles.append(result);
+      $favoritedStories.append(result);
     }
-   }
+  }
+
+  function generateMyStories() {
+    $currentList = $myStories
+    $myStories.empty();
+    $allStoriesList.empty();
+    $favoritedStories.empty();
+    for (let myStory of currentUser.ownStories) {
+      const result = generateStoryHTML(myStory);
+
+      $myStories.prepend(result);
+    }
+  }
 
   /**
    * A function to render HTML for an individual Story instance
@@ -246,16 +286,26 @@ $(async function() {
   function generateStoryHTML(story) {
     let hostName = getHostName(story.url);
 
+    // DISPLAY CORRECT FAVORITES IN LIST
+    let starType = (currentUser && currentUser.hasFavorite(story.storyId)) ? "fas" : "far"
+
+    // DISPLAY REMOVE BUTTON ON USER'S STORIES
+    let buttonHtml = (currentUser && currentUser.hasCreatedStory(story.storyId)) ?
+    "<button class='delete-story-button'>Delete Story</button>" : "";
+
     // render story markup
     const storyMarkup = $(`
       <li id="${story.storyId}">
-        <i class="fa-star favorite" style="margin: 0 3px"></i>
+        <i class="fa-star ${starType} favorite" style="margin: 0 3px"></i>
         <a class="article-link" href="${story.url}" target="a_blank">
           <strong>${story.title}</strong>
         </a>
         <small class="article-author">by ${story.author}</small>
         <small class="article-hostname ${hostName}">(${hostName})</small>
-        <small class="article-username">posted by ${story.username}</small>
+        <small class="article-username">posted by ${story.username}
+          ${buttonHtml}
+        </small> 
+        
       </li>
     `);
 
@@ -268,11 +318,11 @@ $(async function() {
     const elementsArr = [
       $submitForm,
       $allStoriesList,
-      $filteredArticles,
+      $filteredStories,
       $ownStories,
       $loginForm,
       $createAccountForm,
-      $favoritedArticles
+      $favoritedStories
     ];
     elementsArr.forEach($elem => $elem.hide());
   }
@@ -282,6 +332,8 @@ $(async function() {
     $navLogOut.show();
     $createStory.show();
     $favoritesTab.show();
+    $myStoriesTab.show();
+    $separators.show();
   }
 
   /* simple function to pull the hostname from a URL */
