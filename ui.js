@@ -211,10 +211,10 @@ $(async function() {
 
       let starType = "far";
       // check if user is logged in
-      if(currentUser){
+      if(currentUser && currentUser.hasFavorite(story.storyId)){
         // show a star either solid or empty (fas is solid, far is empty)
         // depending on whether it's already favorited by the user.
-        starType = currentUser.hasFavorite(story.storyId) ? "fas" : "far";
+        starType = "fas";
       }
       result.children("i").addClass(starType);
 
