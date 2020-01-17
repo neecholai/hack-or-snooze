@@ -45,13 +45,9 @@ class StoryList {
    */
 
   async addStory(user, newStory) {
-
-    // TODO - Implement this functions!
-    // this function should return the newly created story so it can be used in
-    // the script.js file where it will be appended to the DOM
     const response = await axios.post(`${BASE_URL}/stories`, {
-       token: user.loginToken,
-       story: newStory
+      token: user.loginToken,
+      story: newStory
     });
 
     this.stories.unshift(response.data.story);
@@ -162,6 +158,30 @@ class User {
     existingUser.favorites = response.data.user.favorites.map(s => new Story(s));
     existingUser.ownStories = response.data.user.stories.map(s => new Story(s));
     return existingUser;
+  }
+
+  hasFavorite(id) {
+    return this.favorites.some(function (story) {
+      return story.storyId === id;
+    });
+  }
+
+  async toggleFavorite(storyId) {
+    // declare response, set link and token for later AJAX requests
+    let response;
+    let link = `${BASE_URL}/users/${this.username}/favorites/${storyId}`;
+    let token = this.loginToken;
+
+    const hasFavorite = this.hasFavorite(storyId);
+    if (hasFavorite) {
+      //{token} is now equivalent to {token: this.loginToken}
+      response = await axios.delete(link, { data: { token } });
+    } else {
+      response = await axios.post(link, { token });
+    }
+
+    //re-instantiate user's favorites based on user
+    this.favorites = response.data.user.favorites.map(s => new Story(s));
   }
 }
 

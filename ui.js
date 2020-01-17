@@ -9,6 +9,8 @@ $(async function() {
   const $navLogin = $("#nav-login");
   const $navLogOut = $("#nav-logout");
   const $createStory = $('#create-story');
+  const $favoritesTab = $("#favorites-tab");
+  const $favoritedArticles = $("#favorited-articles");
 
   // global storyList variable
   let storyList = null;
@@ -68,7 +70,7 @@ $(async function() {
 
   /**
    * Event listener for creating a story
-   * If successful, we will add story to the API, and clear DOM and 
+   * If successful, we will add story to the API, and clear DOM and
    * generate new list of stories.
    */
   $submitForm.on("submit", async function(e) {
@@ -93,7 +95,7 @@ $(async function() {
     $allStoriesList.prepend(result);
 
   });
-  
+
   /**
    * Log Out Functionality
    */
@@ -117,6 +119,22 @@ $(async function() {
   });
 
   /**
+   * Event handler for Favoriting a story
+  */
+
+  $(".articles-list").on("click", ".favorite", function(e){
+    // get the star that will be either filled or unfilled
+    let starElement = $(e.target);
+
+    // add or remove favorite, both for the server and the currentUser object
+    let favoriteId = starElement.closest("li")[0].id;
+    currentUser.toggleFavorite(favoriteId);
+
+    //fill or unfill star
+    starElement.toggleClass("far fas");
+  });
+
+  /**
    * Event handler for Navigation to Homepage
    */
 
@@ -124,6 +142,13 @@ $(async function() {
     hideElements();
     await generateStories();
     $allStoriesList.show();
+  });
+
+  // generateStoryHTML(story)
+  $("body").on("click", "#favorites-tab", function() {
+    hideElements();
+    generateFavorites();
+    $favoritedArticles.show();
   });
 
   /**
@@ -183,9 +208,36 @@ $(async function() {
     // loop through all of our stories and generate HTML for them
     for (let story of storyList.stories) {
       const result = generateStoryHTML(story);
+
+      let starType = "far";
+      // check if user is logged in
+      if(currentUser){
+        // show a star either solid or empty (fas is solid, far is empty)
+        // depending on whether it's already favorited by the user.
+        starType = currentUser.hasFavorite(story.storyId) ? "fas" : "far";
+      }
+      result.children("i").addClass(starType);
+
       $allStoriesList.append(result);
     }
   }
+
+  /**
+   *
+   */
+
+   function generateFavorites(){
+    $favoritedArticles.empty();
+    $allStoriesList.empty();
+     for(let favoriteStory of currentUser.favorites){
+      const result = generateStoryHTML(favoriteStory);
+
+      //fas is the tag for a filled star (indicating favorite)
+      result.children("i").addClass("fas");
+
+      $favoritedArticles.append(result);
+    }
+   }
 
   /**
    * A function to render HTML for an individual Story instance
@@ -197,6 +249,7 @@ $(async function() {
     // render story markup
     const storyMarkup = $(`
       <li id="${story.storyId}">
+        <i class="fa-star favorite" style="margin: 0 3px"></i>
         <a class="article-link" href="${story.url}" target="a_blank">
           <strong>${story.title}</strong>
         </a>
@@ -218,7 +271,8 @@ $(async function() {
       $filteredArticles,
       $ownStories,
       $loginForm,
-      $createAccountForm
+      $createAccountForm,
+      $favoritedArticles
     ];
     elementsArr.forEach($elem => $elem.hide());
   }
@@ -227,6 +281,7 @@ $(async function() {
     $navLogin.hide();
     $navLogOut.show();
     $createStory.show();
+    $favoritesTab.show();
   }
 
   /* simple function to pull the hostname from a URL */
