@@ -60,11 +60,21 @@ $(async function () {
     let username = $("#create-account-username").val();
     let password = $("#create-account-password").val();
 
-    // call the create method, which calls the API and then builds a new user instance
-    const newUser = await User.create(username, password, name);
-    currentUser = newUser;
-    syncCurrentUserToLocalStorage();
-    loginAndSubmitForm();
+    if(password.length < 8){
+      alert("Your password is too weak. Use 8 or more characters!");
+      throw new Error("Your password is too weak.");
+    }
+
+    try{
+      // call the create method, which calls the API and then builds a new user instance
+      const newUser = await User.create(username, password, name);
+      currentUser = newUser;
+      syncCurrentUserToLocalStorage();
+      loginAndSubmitForm();
+    }
+    catch(error){
+      alert("This username has been taken!")
+    }
   });
 
   /**
@@ -304,8 +314,8 @@ $(async function () {
         <small class="article-hostname ${hostName}">(${hostName})</small>
         <small class="article-username">posted by ${story.username}
           ${buttonHtml}
-        </small> 
-        
+        </small>
+
       </li>
     `);
 
