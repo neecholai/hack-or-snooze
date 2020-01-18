@@ -39,12 +39,19 @@ $(async function () {
     const username = $("#login-username").val();
     const password = $("#login-password").val();
 
-    // call the login static method to build a user instance
-    const userInstance = await User.login(username, password);
-    // set the global user to the user instance
-    currentUser = userInstance;
-    syncCurrentUserToLocalStorage();
-    loginAndSubmitForm();
+    try {
+      // call the login static method to build a user instance
+      const userInstance = await User.login(username, password);
+      // set the global user to the user instance
+      currentUser = userInstance;
+      syncCurrentUserToLocalStorage();
+      loginAndSubmitForm();
+    }
+    // catch invalid username/password
+    catch (error) {
+      incorrectCredential = (error.response.status === 404) ? "Username" : "Password";
+      alert(`${incorrectCredential} is incorrect.`)
+    }
   });
 
   /**
@@ -60,19 +67,21 @@ $(async function () {
     let username = $("#create-account-username").val();
     let password = $("#create-account-password").val();
 
-    if(password.length < 8){
+    // force user to use a stronger password
+    if (password.length < 8) {
       alert("Your password is too weak. Use 8 or more characters!");
       throw new Error("Your password is too weak.");
     }
 
-    try{
+    try {
       // call the create method, which calls the API and then builds a new user instance
       const newUser = await User.create(username, password, name);
       currentUser = newUser;
       syncCurrentUserToLocalStorage();
       loginAndSubmitForm();
     }
-    catch(error){
+    // catch existing username error
+    catch (error) {
       alert("This username has been taken!")
     }
   });
@@ -166,6 +175,78 @@ $(async function () {
 
     currentUser.deleteStory(createdStory.id);
     createdStory.remove();
+  });
+
+  /**
+  * Event handler for Editing a story
+  */
+  $('.articles-list').on("click", ".edit-story-button", function (e) {
+    let $editButton = $(e.target);
+    let $targetedStory = $editButton.closest("li");
+    let storyId = $targetedStory[0].id;
+
+    const editStoryForm = `
+    <section class="edit-story-container container">
+      <h4>Article Information</h4>
+      <form action="#" class="edit-story-form">
+        <div>
+          <label for="edit-author-${storyId}">Author</label>
+          <input id="edit-author-${storyId}" type="text">
+        </div>
+        <div>
+          <label for="edit-title-${storyId}">Title</label>
+          <input id="edit-title-${storyId}" type="text">
+        </div>
+        <div>
+          <label for="edit-url-${storyId}">URL</label>
+          <input id="edit-url-${storyId}" type="url">
+        </div>
+        <button type="submit">change</button>
+        <button type="button" class="cancel-edit-button">cancel</button>
+      </form>
+    </section>
+    `;
+
+    $targetedStory.append(editStoryForm);
+    $editButton.remove();
+
+    // currentUser.editStory(targetedStory.id);
+    // targetedStory.remove();
+  });
+
+  /**
+   * Event handler for editing story on form submit
+   */
+
+  $(".articles-list").on("submit", ".edit-story-form", async function (e) {
+    e.preventDefault();
+    let $submitButton = $(e.target);
+    let $targetedStory = $submitButton.closest("li");
+    let storyId = $targetedStory[0].id;
+
+    let newAuthor = $(`#edit-author-${storyId}`).val();
+    let newTitle = $(`#edit-title-${storyId}`).val();
+    let newUrl = $(`#edit-url-${storyId}`).val();
+
+    let storyEdits = {}
+
+    if (newAuthor) storyEdits.author = newAuthor;
+    if (newTitle) storyEdits.title = newTitle;
+    if (newUrl) storyEdits.url = newUrl;
+
+    let updatedStory = await storyList.updateStory(currentUser, storyId, storyEdits);
+
+    let updatedStoryHtml = generateStoryHTML(updatedStory);
+    $targetedStory.replaceWith(updatedStoryHtml);
+  });
+
+  /**
+   * Event handler for deleting the edit story form
+   */
+
+  $(".articles-list").on("click", ".cancel-edit-button", async function (e) {
+    e.preventDefault();
+    $(e.target).closest("section").remove();
   });
 
   /**
@@ -300,8 +381,10 @@ $(async function () {
     let starType = (currentUser && currentUser.hasFavorite(story.storyId)) ? "fas" : "far"
 
     // DISPLAY REMOVE BUTTON ON USER'S STORIES
-    let buttonHtml = (currentUser && currentUser.hasCreatedStory(story.storyId)) ?
-    "<button class='delete-story-button'>Delete Story</button>" : "";
+    let deleteBtnHtml = (currentUser && currentUser.hasCreatedStory(story.storyId)) ?
+      "<button class='delete-story-button'>Delete Story</button>" : "";
+    let editBtnHtml = (currentUser && currentUser.hasCreatedStory(story.storyId)) ?
+      "<button class='edit-story-button'>Edit Story</button>" : "";
 
     // render story markup
     const storyMarkup = $(`
@@ -313,7 +396,7 @@ $(async function () {
         <small class="article-author">by ${story.author}</small>
         <small class="article-hostname ${hostName}">(${hostName})</small>
         <small class="article-username">posted by ${story.username}
-          ${buttonHtml}
+          ${editBtnHtml + deleteBtnHtml}
         </small>
 
       </li>

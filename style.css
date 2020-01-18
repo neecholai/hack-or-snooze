@@ -120,6 +120,20 @@ form > hr {
   border: 0.5px solid lightgray;
 }
 
+.edit-story-form{
+  display:block;
+  padding: 0px;
+  margin:0px 18px;
+}
+
+.edit-story-form button,
+.edit-story-form label,
+.edit-story-form h4,
+.edit-story-form input{
+  margin:2px 4px;
+  padding: 4px
+}
+
 .login-input label {
   width: 70px;
 }
@@ -189,6 +203,16 @@ form > hr {
 
 .delete-story-button {
   background-color: #76c791;
+  margin: 1px 3px;
+  border-radius: 5px;
+  border: 1px solid #445544;
+  box-shadow: 1px 0px #c2c9cf;
+  padding: 1px 4px;
+  font-size: smaller;
+}
+
+.edit-story-button {
+  background-color: #87a853;
   margin: 1px 3px;
   border-radius: 5px;
   border: 1px solid #445544;

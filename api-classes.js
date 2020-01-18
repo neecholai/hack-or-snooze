@@ -56,6 +56,16 @@ class StoryList {
 
   }
 
+  async updateStory(user, storyId, storyEdits) {
+    let token = user.loginToken;
+
+    const response = await axios.patch(`${BASE_URL}/stories/${storyId}`, {
+      token,
+      story: storyEdits
+    });
+
+    return response.data.story;
+  }
 }
 
 
